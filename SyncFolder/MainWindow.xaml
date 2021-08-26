@@ -60,14 +60,17 @@
             <Image x:Name="ImageStop" Source="/Icons/Stop.png" Style="{StaticResource IconsStyle}"/>
         </Button>
 
-        <StackPanel Grid.Column="0" Grid.Row="8" Grid.ColumnSpan="2" Orientation="Horizontal" Height="30" Margin="5">
-            <TextBlock x:Name="TextBoxStatus" Text="Укажите необходимые значения и нажмите на старт для начала синхронизации!" Width="auto" VerticalAlignment="Center" Grid.Column="1" Grid.Row="3" Margin="5"></TextBlock>
-            <ProgressBar></ProgressBar>
-        </StackPanel>
+        <Grid Grid.Row="8" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="TextBoxStatus" Text="Готов!" Width="200" VerticalAlignment="Center" Grid.Column="0" Margin="5"></TextBlock>
+            <ProgressBar x:Name="ProgressBarChanges" Minimum="0" Maximum="100" Grid.Column="1" Margin="5,5,35,5"></ProgressBar>
+        </Grid>
+
         <Button x:Name="ButtonClose" Click="ButtonClose_Click" ToolTip="Выход" Grid.Column="2" Grid.Row="9">
             <Image x:Name="ImageClose" Source="/Icons/Close.png" Style="{StaticResource IconsStyle}"/>
         </Button>
-
     </Grid>
-    
 </Window>

@@ -18,6 +18,7 @@ namespace SyncFolder
             InitializeComponent();
             _BackgroundWorker = (BackgroundWorker)FindResource("BackgroundWorker");
             ButtonStop.IsEnabled = false;
+            ProgressBarChanges.Visibility = Visibility.Hidden;
         }
         #region ОТКРЫТИЕ ПАПОК
         private void OpenOriginFolder_Click(object sender, RoutedEventArgs e)
@@ -93,11 +94,13 @@ namespace SyncFolder
         {
             if (!CheckInputValues()) return;
 
+            ListOfChanges.Items.Clear();
             InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinationFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
             _BackgroundWorker.RunWorkerAsync(inputParams);                 //запуск BackgroundWorker
 
             // if()
             TextBoxStatus.Text = "Синхронизация начата!";
+            ProgressBarChanges.Visibility = Visibility.Visible;
             ButtonStop.IsEnabled = true;
             ButtonStart.IsEnabled = false;
         }
@@ -105,14 +108,22 @@ namespace SyncFolder
         {
             InputParams input = (InputParams)e.Argument;
             List<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
+            if (_BackgroundWorker.CancellationPending)
+            {
+                e.Cancel = true;
+                return;
+            }
             e.Result = list;
         }
 
         private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (e.Error != null)
+            if (e.Cancelled)
             {
-                // An error was thrown by the DoWork event handler.
+                TextBoxStatus.Text = "Синхронизация прервана!";
+            }
+            else if(e.Error != null)
+            {
                 TextBoxStatus.Text = e.Error.Message;
             }
             else
@@ -122,16 +133,17 @@ namespace SyncFolder
                 {
                     ListOfChanges.Items.Insert(0, item);
                 }
+                TextBoxStatus.Text = "Синхронизация выполнена!";
             }
-
             ButtonStop.IsEnabled = false;
             ButtonStart.IsEnabled = true;
-            TextBoxStatus.Text = "Синхронизация выполнена!";
+            ProgressBarChanges.Value = 0;
+            ProgressBarChanges.Visibility = Visibility.Hidden;
         }
 
         private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-
+            ProgressBarChanges.Value = e.ProgressPercentage;
         }
     }
 }

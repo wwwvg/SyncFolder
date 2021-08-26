@@ -1,5 +1,6 @@
 ﻿using SyncFolder.Properties;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Forms;
@@ -11,13 +12,14 @@ namespace SyncFolder
     /// </summary>
     public partial class MainWindow : Window
     {
-        public BackgroundWorker _BackgroundWorker { get; set; }
+        private BackgroundWorker _BackgroundWorker;
         public MainWindow()
         {
             InitializeComponent();
             _BackgroundWorker = (BackgroundWorker)FindResource("BackgroundWorker");
+            ButtonStop.IsEnabled = false;
         }
-
+        #region ОТКРЫТИЕ ПАПОК
         private void OpenOriginFolder_Click(object sender, RoutedEventArgs e)
         {
             FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
@@ -41,14 +43,39 @@ namespace SyncFolder
             if (result == true)
                 TextBoxLogFile.Text = dlg.FileName;     //установил текст в текстовое поле
         }
-        private void ButtonStart_Click(object sender, RoutedEventArgs e)
-        {
+        #endregion
 
+        #region ПРОВЕРКА ВХОДНЫХ ДАННЫХ
+        
+        private bool CheckInputValues()
+        {
+            if (!Int32.TryParse(TextBoxInterval.Text, out int interval))
+            {
+                TextBoxStatus.Text = "Некорректный интервал!";
+                return false;
+            }
+            if (interval <= 0)
+            {
+                TextBoxStatus.Text = "Некорректный интервал!";
+                return false;
+            }
+            if (TextBoxOriginFolder.Text == TextBoxDestinationFolder.Text)
+            {
+                TextBoxStatus.Text = "Указана одна и та же папка!";
+                return false;
+            }
+
+                                                                          //добавить проверку существования папок и файла
+                                                                                                    
+            return true;
         }
+        #endregion
 
         private void ButtonStop_Click(object sender, RoutedEventArgs e)
         {
-            
+            ButtonStop.IsEnabled = false;
+            ButtonStart.IsEnabled = true;
+            _BackgroundWorker.CancelAsync();                //остановка BackgroundWorker
         }
 
         private void ButtonClose_Click(object sender, RoutedEventArgs e)
@@ -62,14 +89,44 @@ namespace SyncFolder
             base.OnClosing(e);
         }
 
+        private void ButtonStart_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CheckInputValues()) return;
+
+            InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinationFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
+            _BackgroundWorker.RunWorkerAsync(inputParams);                 //запуск BackgroundWorker
+
+            // if()
+            TextBoxStatus.Text = "Синхронизация начата!";
+            ButtonStop.IsEnabled = true;
+            ButtonStart.IsEnabled = false;
+        }
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            
+            InputParams input = (InputParams)e.Argument;
+            List<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
+            e.Result = list;
         }
 
         private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            if (e.Error != null)
+            {
+                // An error was thrown by the DoWork event handler.
+                TextBoxStatus.Text = e.Error.Message;
+            }
+            else
+            {
+                List<string> list = (List<string>)e.Result;
+                foreach (var item in list)
+                {
+                    ListOfChanges.Items.Insert(0, item);
+                }
+            }
 
+            ButtonStop.IsEnabled = false;
+            ButtonStart.IsEnabled = true;
+            TextBoxStatus.Text = "Синхронизация выполнена!";
         }
 
         private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)

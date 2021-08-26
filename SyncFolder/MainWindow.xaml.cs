@@ -107,7 +107,7 @@ namespace SyncFolder
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             InputParams input = (InputParams)e.Argument;
-            List<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
+            IEnumerable<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
             if (_BackgroundWorker.CancellationPending)
             {
                 e.Cancel = true;
@@ -128,7 +128,7 @@ namespace SyncFolder
             }
             else
             {
-                List<string> list = (List<string>)e.Result;
+                IEnumerable<string> list = (IEnumerable<string>)e.Result;
                 foreach (var item in list)
                 {
                     ListOfChanges.Items.Insert(0, item);

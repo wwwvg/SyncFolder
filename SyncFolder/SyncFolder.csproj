@@ -64,6 +64,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CatalogChanger.cs" />
     <Compile Include="DifferenceFinder.cs" />
     <Compile Include="InputParams.cs" />
     <Compile Include="MainWindow.xaml.cs">

@@ -1,0 +1,18 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SyncFolder.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="OriginFolderName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">D:\1_SyncFolder\Origin</Value>
+    </Setting>
+    <Setting Name="DestinationFolderName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">D:\1_SyncFolder\Destination</Value>
+    </Setting>
+    <Setting Name="LogFileName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">D:\1_SyncFolder\Log.txt</Value>
+    </Setting>
+    <Setting Name="IntervalText" Type="System.String" Scope="User">
+      <Value Profile="(Default)">1000</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

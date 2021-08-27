@@ -1,6 +1,7 @@
 ﻿using SyncFolder.Properties;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Threading;
 using System.Windows;
@@ -14,10 +15,12 @@ namespace SyncFolder
     public partial class MainWindow : Window
     {
         private BackgroundWorker _BackgroundWorker;
+
         public MainWindow()
         {
             InitializeComponent();
             _BackgroundWorker = (BackgroundWorker)FindResource("BackgroundWorker");
+            
             ButtonStop.IsEnabled = false;
             ProgressBarChanges.Visibility = Visibility.Hidden;
         }
@@ -98,7 +101,6 @@ namespace SyncFolder
         {
             if (!CheckInputValues()) return;
 
-            ListOfChanges.Items.Clear();
             InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinationFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
             _BackgroundWorker.RunWorkerAsync(inputParams);                 //запуск BackgroundWorker
 
@@ -110,19 +112,22 @@ namespace SyncFolder
             ButtonStart.IsEnabled = false;
 
         }
-        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
         {           
             InputParams input = (InputParams)e.Argument;
-            IEnumerable<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
+            List<Data> datas = new List<Data>();                //РЕЗУЛЬТАТ
+            datas.AddRange(DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker));
+         
             if (_BackgroundWorker.CancellationPending)
             {
                 e.Cancel = true;
                 return;
             }
-            e.Result = list;
+            
+            e.Result = datas;//РЕЗУЛЬТАТ
         }
 
-        private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)  //КОНЕЦ РАБОТЫ
         {
             if (e.Cancelled)
             {
@@ -136,11 +141,8 @@ namespace SyncFolder
             }
             else
             {
-                IEnumerable<string> list = (IEnumerable<string>)e.Result;
-                foreach (var item in list)
-                {
-                    ListOfChanges.Items.Insert(0, item);
-                }
+                ListOfChanges.ItemsSource = (List<Data>)e.Result;//РЕЗУЛЬТАТ
+
                 TextBoxStatus.Text = "Синхронизация выполнена!";
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
@@ -150,7 +152,7 @@ namespace SyncFolder
             ProgressBarChanges.Visibility = Visibility.Hidden;
         }
 
-        private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)        //ПРОГРЕСС РАБОТЫ
         {
             ProgressBarChanges.Value = e.ProgressPercentage;
         }

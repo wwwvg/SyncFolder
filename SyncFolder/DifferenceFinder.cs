@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -13,11 +14,10 @@ namespace SyncFolder
 {
     class DifferenceFinder
     {
-
-
         private static BackgroundWorker _BackgroundWorker;
+        public static IList<Data> _Datas = new List<Data>();
 
-        public static IEnumerable<string> Find(string originFolder, string destinFolder, string logFileName, int interval, BackgroundWorker backgroundWorker)
+        public static IList<Data> Find(string originFolder, string destinFolder, string logFileName, int interval, BackgroundWorker backgroundWorker)
         {
             _BackgroundWorker = backgroundWorker;
             List<string> list1 = GetRecursFiles(originFolder);
@@ -40,7 +40,11 @@ namespace SyncFolder
             {
                 DirectoryInfo dirInfo = new DirectoryInfo(folder);
                 if (!dirInfo.Exists)
+                {
                     dirInfo.Create();
+                    _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder});
+                    _BackgroundWorker.ReportProgress(50);
+                }
             }
 
 //ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ИСТОЧНИКА
@@ -55,8 +59,12 @@ namespace SyncFolder
             {
                 FileInfo fileInf = new FileInfo(file.Replace(destinFolder, originFolder));
                 if (fileInf.Exists)
+                {
                     fileInf.CopyTo(file);
-               
+                    _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
+                    //_BackgroundWorker.ReportProgress(0);
+                }
+
             }
 
 //УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ПРИЕМНИКА
@@ -68,11 +76,15 @@ namespace SyncFolder
             {
                 FileInfo fileInf = new FileInfo(file);
                 if (fileInf.Exists)
+                {
                     fileInf.Delete();
+                    _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
+                    //_BackgroundWorker.ReportProgress(0);
+                }
             }
 
-//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
-
+//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ПРИЕМНИКА
+            
             //ищем уникальные папки во 2м каталоге и удаляем их
             query = from folder in listFolders2.Except(listFolders1) select destinFolder + folder;
 
@@ -80,37 +92,42 @@ namespace SyncFolder
             {
                 DirectoryInfo dirInfo = new DirectoryInfo(folder);
                 if (dirInfo.Exists)
-                    dirInfo.Delete();
+                {
+                    dirInfo.Delete(true);
+                    _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder });
+                    //_BackgroundWorker.ReportProgress(0);
+                }
             }
-
-//СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
+                //СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
 
             list1 = GetRecursFiles(originFolder);
             list2 = GetRecursFiles(destinFolder);
-
-            List<string> listOfChanged = new List<string>(); //список неравных файлов
 
             try
             {
                 for (int i = 0; i < list1.Count; i++)
                 {
-                    if (GetRecursFiles(originFolder).Count != GetRecursFiles(destinFolder).Count) break; //если изменилось кол-во файлов в 2-х папках то выход
-
-                    string fileName1 = list1[i].Replace("Файл", "");
-                    string fileName2 = list2[i].Replace("Файл", "");
-                    if (list1[i].Contains("Папка")) continue;
-
-                    if (!FileCompare(fileName1, fileName2))
+                    for (int j = 0; j < list2.Count; j++)
                     {
-                        listOfChanged.Add("[%] " + fileName1);
+                        string fileName1 = list1[i].Replace("Файл", "");
+                        string fileName2 = list2[j].Replace("Файл", "");
+                        if (list1[i].Contains("Папка") || list2[j].Contains("Папка")) continue;
 
-                        FileInfo fileInf = new FileInfo(fileName2);
-                        if (fileInf.Exists)
-                            fileInf.Delete();
+                        if (fileName1 == fileName2)
+                        {
+                            if (!FileCompare(fileName1, fileName2))
+                            {
+                                FileInfo fileInf = new FileInfo(fileName2);
+                                if (fileInf.Exists)
+                                    fileInf.Delete();
 
-                        fileInf = new FileInfo(fileName1);
-                        if (fileInf.Exists)
-                            fileInf.CopyTo(fileName2, true);
+                                fileInf = new FileInfo(fileName1);
+                                if (fileInf.Exists)
+                                    fileInf.CopyTo(fileName2, true);
+                                _Datas.Add(new Data { ImagePath = @"\Icons\update.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 });
+                                //_BackgroundWorker.ReportProgress(0);
+                            }
+                        }
                     }
                 }
             }
@@ -119,7 +136,7 @@ namespace SyncFolder
                 MessageBox.Show(e.Message);
             }
             
-            return listOfChanged;
+            return _Datas; //ВОЗВРАЩАЕТСЯ СПИСОК ИЗМЕНЕНИЙ ДЛЯ LISTVIEW
             
         }
         #region РЕКУРСИВНЫЙ ПОИСК ФАЙЛОВ И КАТАЛОГОВ

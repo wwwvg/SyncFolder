@@ -7,7 +7,7 @@
         xmlns:cm="clr-namespace:System.ComponentModel;assembly=System"
         xmlns:p="clr-namespace:SyncFolder.Properties"
         mc:Ignorable="d"
-        Title="Синхронизатор папок" Height="450" Width="800">
+        Title="Синхронизатор папок" Height="450" Width="800" Icon="\Icons\window.png">
     <Window.Resources>
         <cm:BackgroundWorker x:Key="BackgroundWorker"
             WorkerReportsProgress="True" WorkerSupportsCancellation="True"
@@ -52,8 +52,39 @@
 
         <Label Content="Изменения:" VerticalAlignment="Center" Grid.Column="0" Grid.Row="4" Margin="5,15,5,0"></Label>
 
-        <ListBox x:Name="ListOfChanges" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" Grid.RowSpan="3"  Margin="5"></ListBox>
+        <ListView x:Name="ListOfChanges" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" Grid.RowSpan="3"  Margin="5">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding Path=ImagePath}" MaxHeight="15">
+                                </Image>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding Path=TypeOfFile}" MaxHeight="15">
+                                </Image>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Время" x:Name="CheckBoxColumn">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Path=TimeStamp}" HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Path}">Путь</GridViewColumn>
 
+                    
+                </GridView>
+            </ListView.View>
+        </ListView>
+        
         <Button x:Name="ButtonStart" Click="ButtonStart_Click" ToolTip="Запуск синхронизатора" Grid.Column="2" Grid.Row="5">
             <Image x:Name="ImagePlay" Source="/Icons/Start.png" Style="{StaticResource IconsStyle}"/>
         </Button>

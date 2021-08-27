@@ -65,6 +65,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CatalogChanger.cs" />
+    <Compile Include="Data.cs" />
     <Compile Include="DifferenceFinder.cs" />
     <Compile Include="InputParams.cs" />
     <Compile Include="MainWindow.xaml.cs">
@@ -105,6 +106,22 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Icons\Stop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\added.png" />
+    <Resource Include="Icons\deleted.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\file.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\update.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\window.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

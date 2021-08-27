@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,89 +13,142 @@ namespace SyncFolder
 {
     class DifferenceFinder
     {
+
+
         private static BackgroundWorker _BackgroundWorker;
+
         public static IEnumerable<string> Find(string originFolder, string destinFolder, string logFileName, int interval, BackgroundWorker backgroundWorker)
         {
             _BackgroundWorker = backgroundWorker;
             List<string> list1 = GetRecursFiles(originFolder);
             List<string> list2 = GetRecursFiles(destinFolder);
-            
+            List<string> listFolders1 = new List<string>();
+            List<string> listFiles1 = new List<string>();
+            List<string> listFolders2 = new List<string>();
+            List<string> listFiles2 = new List<string>();
+
+
+//ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
+
+            listFolders1 = (from file in list1 where file.Contains("Папка") select file.Replace("Папка" + originFolder, "")).ToList(); //папки в источнике
+            listFolders2 = (from file in list2 where file.Contains("Папка") select file.Replace("Папка" + destinFolder, "")).ToList(); //папки в приемнике
+
+            //ищем новые папки в 1м каталоге и добавляем их во 2й
+            var query = from folder in listFolders1.Except(listFolders2) select destinFolder + folder;
+
+            foreach (var folder in query)
+            {
+                DirectoryInfo dirInfo = new DirectoryInfo(folder);
+                if (!dirInfo.Exists)
+                    dirInfo.Create();
+            }
+
+//ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ИСТОЧНИКА
+
+            listFiles1 = (from file in list1 where file.Contains("Файл") select file.Replace("Файл" + originFolder, "")).ToList(); //файлы в источнике
+            listFiles2 = (from file in list2 where file.Contains("Файл") select file.Replace("Файл" + destinFolder, "")).ToList(); //файлы в приемнике
+
             //ищем новые файлы в 1м каталоге и добавляем их во 2й
-            IEnumerable<string> query = from file in list1.Except(list2) orderby file descending select originFolder + "\\" + file; 
-            foreach (var item in query)
-            {
-                CatalogChanger.AddFile(item, destinFolder + item.Replace(originFolder, ""));
-            }
-            var listOfAdded = query.ToList();
+            query = from file in listFiles1.Except(listFiles2) select destinFolder + file;
 
-            for (int i = 0; i < listOfAdded.Count(); i++)
+            foreach (var file in query)
             {
-                listOfAdded[i] = "[+] " + listOfAdded[i];
+                FileInfo fileInf = new FileInfo(file.Replace(destinFolder, originFolder));
+                if (fileInf.Exists)
+                    fileInf.CopyTo(file);
+               
             }
 
-            //ищем старые файлы во 2м каталоге и удаляем их
-            query = from file in list2.Except(list1) orderby file descending select destinFolder + "\\" + file;
-            foreach (var item in query)
+//УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ПРИЕМНИКА
+
+            //ищем уникальные файлы во 2м каталоге и удаляем их
+            query = from file in listFiles2.Except(listFiles1) select destinFolder + file;
+
+            foreach (var file in query)
             {
-                CatalogChanger.DeleteFile(item);
+                FileInfo fileInf = new FileInfo(file);
+                if (fileInf.Exists)
+                    fileInf.Delete();
             }
-            var listOfDeleted = query.ToList();
 
-            for (int i = 0; i < listOfDeleted.Count(); i++)
+//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
+
+            //ищем уникальные папки во 2м каталоге и удаляем их
+            query = from folder in listFolders2.Except(listFolders1) select destinFolder + folder;
+
+            foreach (var folder in query)
             {
-                listOfDeleted[i] = "[-] " + listOfDeleted[i];
+                DirectoryInfo dirInfo = new DirectoryInfo(folder);
+                if (dirInfo.Exists)
+                    dirInfo.Delete();
             }
 
-            listOfAdded.AddRange(listOfDeleted); //список добавленных и удаленных
+//СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
 
-            //Обновляем списки каталогов. Структура каталогов должна быть одинакова.
             list1 = GetRecursFiles(originFolder);
             list2 = GetRecursFiles(destinFolder);
+
             List<string> listOfChanged = new List<string>(); //список неравных файлов
+
             try
             {
                 for (int i = 0; i < list1.Count; i++)
                 {
-                    if (!FileCompare(originFolder + "\\" + list1[i], destinFolder + "\\" + list2[i]))
+                    if (GetRecursFiles(originFolder).Count != GetRecursFiles(destinFolder).Count) break; //если изменилось кол-во файлов в 2-х папках то выход
+
+                    string fileName1 = list1[i].Replace("Файл", "");
+                    string fileName2 = list2[i].Replace("Файл", "");
+                    if (list1[i].Contains("Папка")) continue;
+
+                    if (!FileCompare(fileName1, fileName2))
                     {
-                        listOfChanged.Add("[%] " + list1[i]);
-                        CatalogChanger.AddFile(originFolder + "\\" + list1[i], destinFolder + "\\" + list1[i].Replace(originFolder, ""));
-                    }                  
+                        listOfChanged.Add("[%] " + fileName1);
+
+                        FileInfo fileInf = new FileInfo(fileName2);
+                        if (fileInf.Exists)
+                            fileInf.Delete();
+
+                        fileInf = new FileInfo(fileName1);
+                        if (fileInf.Exists)
+                            fileInf.CopyTo(fileName2, true);
+                    }
                 }
             }
             catch (System.Exception e)
             {
                 MessageBox.Show(e.Message);
             }
-
-            listOfAdded.AddRange(listOfChanged);
-
-            return listOfAdded;
+            
+            return listOfChanged;
+            
         }
-
+        #region РЕКУРСИВНЫЙ ПОИСК ФАЙЛОВ И КАТАЛОГОВ
         private static List<string> GetRecursFiles(string start_path)
         {
-            List<string> ls = new List<string>();
+            List<string> list = new List<string>();
             try
             {
                 string[] folders = Directory.GetDirectories(start_path);
                 foreach (string folder in folders)
                 {
-                    ls.Add(/*"Папка: " + */folder.Replace(start_path + "\\", ""));
-                    ls.AddRange(GetRecursFiles(folder));
+                    
+                    list.Add("Папка" + folder/*.Replace(start_path + "\\", "")*/);
+                    list.AddRange(GetRecursFiles(folder));
+                   
                 }
                 string[] files = Directory.GetFiles(start_path);
                 foreach (string filename in files)
                 {
-                    ls.Add(/*"Файл: " + */filename.Replace(start_path + "\\", ""));
+                    list.Add("Файл" + filename/*.Replace(start_path + "\\", "")*/);
                 }
             }
             catch (System.Exception e)
             {
-                //MessageBox.Show(e.Message);
+                MessageBox.Show(e.Message);
             }
-            return ls;
+            return list;
         }
+        #endregion
 
         #region //Использование visual C# для создания File-Compare функции
         //https://docs.microsoft.com/ru-ru/troubleshoot/dotnet/csharp/create-file-compare
@@ -153,12 +207,7 @@ namespace SyncFolder
 
 
 }
-/*
- * 1. Привести в соотв. структуру каталогов и файлов
- *      1й объединить со 2м 
- *      1й пересечь с пред. результатом
- * 2. Проверить каждый файл побитово
- */
+
 
 
 /*
@@ -180,6 +229,3 @@ namespace SyncFolder
                 }
             }
             */
-
-//var temp = from file in list1.Union(list2) orderby file descending select file;
-//var query = from file in list1.Intersect(temp) orderby file descending select file;

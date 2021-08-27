@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -53,16 +54,19 @@ namespace SyncFolder
             if (!Int32.TryParse(TextBoxInterval.Text, out int interval))
             {
                 TextBoxStatus.Text = "Некорректный интервал!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
                 return false;
             }
             if (interval <= 0)
             {
                 TextBoxStatus.Text = "Некорректный интервал!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
                 return false;
             }
             if (TextBoxOriginFolder.Text == TextBoxDestinationFolder.Text)
             {
                 TextBoxStatus.Text = "Указана одна и та же папка!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
                 return false;
             }
 
@@ -100,12 +104,14 @@ namespace SyncFolder
 
             // if()
             TextBoxStatus.Text = "Синхронизация начата!";
+            TextBoxStatus.ToolTip = TextBoxStatus.Text;
             ProgressBarChanges.Visibility = Visibility.Visible;
             ButtonStop.IsEnabled = true;
             ButtonStart.IsEnabled = false;
+
         }
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
+        {           
             InputParams input = (InputParams)e.Argument;
             IEnumerable<string> list = DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker);
             if (_BackgroundWorker.CancellationPending)
@@ -121,10 +127,12 @@ namespace SyncFolder
             if (e.Cancelled)
             {
                 TextBoxStatus.Text = "Синхронизация прервана!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
             else if(e.Error != null)
             {
                 TextBoxStatus.Text = e.Error.Message;
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
             else
             {
@@ -134,6 +142,7 @@ namespace SyncFolder
                     ListOfChanges.Items.Insert(0, item);
                 }
                 TextBoxStatus.Text = "Синхронизация выполнена!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
             ButtonStop.IsEnabled = false;
             ButtonStart.IsEnabled = true;

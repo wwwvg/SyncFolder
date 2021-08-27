@@ -5,8 +5,8 @@
     <Setting Name="OriginFolderName" Type="System.String" Scope="User">
       <Value Profile="(Default)">D:\1_SyncFolder\Origin</Value>
     </Setting>
-    <Setting Name="DestinationFolderName" Type="System.String" Scope="User">
-      <Value Profile="(Default)">D:\1_SyncFolder\Destination</Value>
+    <Setting Name="DestinFolderName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">D:\1_SyncFolder\Destin</Value>
     </Setting>
     <Setting Name="LogFileName" Type="System.String" Scope="User">
       <Value Profile="(Default)">D:\1_SyncFolder\Log.txt</Value>

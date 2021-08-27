@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +15,17 @@ namespace SyncFolder
         {
             if (PropertyChanged != null)
                 PropertyChanged(this, e);
+        }
+
+        private string id;
+        public string Id
+        {
+            get { return id; }
+            set
+            {
+                id = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("Id"));
+            }
         }
 
         private string imagePath;

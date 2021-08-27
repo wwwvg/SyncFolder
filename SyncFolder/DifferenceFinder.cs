@@ -35,7 +35,7 @@ namespace SyncFolder
 
             //ищем новые папки в 1м каталоге и добавляем их во 2й
             var query = from folder in listFolders1.Except(listFolders2) select destinFolder + folder;
-
+            int ii = 0;
             foreach (var folder in query)
             {
                 DirectoryInfo dirInfo = new DirectoryInfo(folder);
@@ -43,7 +43,7 @@ namespace SyncFolder
                 {
                     dirInfo.Create();
                     _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder});
-                    _BackgroundWorker.ReportProgress(50);
+                   // if(ii < 20) _BackgroundWorker.ReportProgress(ii++);
                 }
             }
 
@@ -62,7 +62,7 @@ namespace SyncFolder
                 {
                     fileInf.CopyTo(file);
                     _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
-                    //_BackgroundWorker.ReportProgress(0);
+                   // if (ii < 40) _BackgroundWorker.ReportProgress(ii++);
                 }
 
             }
@@ -79,7 +79,7 @@ namespace SyncFolder
                 {
                     fileInf.Delete();
                     _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
-                    //_BackgroundWorker.ReportProgress(0);
+                   // if (ii < 60) _BackgroundWorker.ReportProgress(ii++);
                 }
             }
 
@@ -95,7 +95,7 @@ namespace SyncFolder
                 {
                     dirInfo.Delete(true);
                     _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder });
-                    //_BackgroundWorker.ReportProgress(0);
+                    //if (ii < 80) _BackgroundWorker.ReportProgress(ii++);
                 }
             }
                 //СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
@@ -125,7 +125,7 @@ namespace SyncFolder
                                 if (fileInf.Exists)
                                     fileInf.CopyTo(fileName2, true);
                                 _Datas.Add(new Data { ImagePath = @"\Icons\update.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 });
-                                //_BackgroundWorker.ReportProgress(0);
+                             //   if (ii < 90) _BackgroundWorker.ReportProgress(ii++);
                             }
                         }
                     }
@@ -224,7 +224,6 @@ namespace SyncFolder
 
 
 }
-
 
 
 /*

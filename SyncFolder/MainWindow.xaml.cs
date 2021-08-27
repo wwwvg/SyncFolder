@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
 
 namespace SyncFolder
 {
@@ -15,7 +17,9 @@ namespace SyncFolder
     public partial class MainWindow : Window
     {
         private BackgroundWorker _BackgroundWorker;
-
+        private List<Data> _Datas;
+        private Process _Process1;
+        private Process _Process2;
         public MainWindow()
         {
             InitializeComponent();
@@ -38,7 +42,7 @@ namespace SyncFolder
             FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
             DialogResult result = folderBrowser.ShowDialog();
             if (!string.IsNullOrWhiteSpace(folderBrowser.SelectedPath))
-                TextBoxDestinationFolder.Text = folderBrowser.SelectedPath.ToString();
+                TextBoxDestinFolder.Text = folderBrowser.SelectedPath.ToString();
         }
 
         private void OpenLogFile_Click(object sender, RoutedEventArgs e)
@@ -66,7 +70,7 @@ namespace SyncFolder
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
                 return false;
             }
-            if (TextBoxOriginFolder.Text == TextBoxDestinationFolder.Text)
+            if (TextBoxOriginFolder.Text == TextBoxDestinFolder.Text)
             {
                 TextBoxStatus.Text = "Указана одна и та же папка!";
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
@@ -86,10 +90,7 @@ namespace SyncFolder
             _BackgroundWorker.CancelAsync();                //остановка BackgroundWorker
         }
 
-        private void ButtonClose_Click(object sender, RoutedEventArgs e)
-        {
-            System.Windows.Application.Current.Shutdown();
-        }
+       
 
         protected override void OnClosing(CancelEventArgs e)
         {
@@ -101,7 +102,7 @@ namespace SyncFolder
         {
             if (!CheckInputValues()) return;
 
-            InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinationFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
+            InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
             _BackgroundWorker.RunWorkerAsync(inputParams);                 //запуск BackgroundWorker
 
             // if()
@@ -115,16 +116,18 @@ namespace SyncFolder
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
         {           
             InputParams input = (InputParams)e.Argument;
-            List<Data> datas = new List<Data>();                //РЕЗУЛЬТАТ
-            datas.AddRange(DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker));
-         
+
+            _Datas = new List<Data>();
+            _Datas.AddRange(DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker));//РЕЗУЛЬТАТ
+            setId(_Datas);
+
             if (_BackgroundWorker.CancellationPending)
             {
                 e.Cancel = true;
                 return;
             }
             
-            e.Result = datas;//РЕЗУЛЬТАТ
+            e.Result = _Datas;//РЕЗУЛЬТАТ
         }
 
         private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)  //КОНЕЦ РАБОТЫ
@@ -141,7 +144,9 @@ namespace SyncFolder
             }
             else
             {
-                ListOfChanges.ItemsSource = (List<Data>)e.Result;//РЕЗУЛЬТАТ
+               // List<Data> _Datas = (List<Data>)e.Result;//РЕЗУЛЬТАТ
+               // setId(_Datas);
+                ListOfChanges.ItemsSource = (List<Data>)e.Result;//РЕЗУЛЬТАТ;
 
                 TextBoxStatus.Text = "Синхронизация выполнена!";
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
@@ -152,9 +157,28 @@ namespace SyncFolder
             ProgressBarChanges.Visibility = Visibility.Hidden;
         }
 
+        private void setId(List<Data> datas)
+        {
+            for (int i = 0; i < datas.Count; i++)
+            {
+                datas[i].Id = (i + 1).ToString();
+            }
+        }
+
         private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)        //ПРОГРЕСС РАБОТЫ
         {
             ProgressBarChanges.Value = e.ProgressPercentage;
+        }
+
+        private void ButtonClose_Click(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Application.Current.Shutdown();
+        }
+
+        private void ButtonExplorer_OnClick(object sender, RoutedEventArgs e)
+        {
+            _Process1 = Process.Start("explorer.exe", TextBoxOriginFolder.Text);
+            _Process2 = Process.Start("explorer.exe", TextBoxDestinFolder.Text);
         }
     }
 }

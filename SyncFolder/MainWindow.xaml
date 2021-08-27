@@ -39,8 +39,8 @@
         <TextBox x:Name="TextBoxOriginFolder" Text="{Binding Source={x:Static p:Settings.Default}, Path=OriginFolderName, Mode=TwoWay}" Width="auto" VerticalAlignment="Center" Grid.Column="1" Grid.Row="0" Margin="2"></TextBox>
         <Button x:Name="OpenOriginFolder" Click="OpenOriginFolder_Click"  Grid.Column="2" Grid.Row="0" MinWidth="50" Margin="7" Height="28">...</Button>
 
-        <Label Content="Каталог реплика:" VerticalAlignment="Center" Grid.Column="0" Grid.Row="1"></Label>
-        <TextBox x:Name="TextBoxDestinationFolder" Text="{Binding Source={x:Static p:Settings.Default}, Path=DestinationFolderName, Mode=TwoWay}" Width="auto" VerticalAlignment="Center" Grid.Column="1" Grid.Row="1" Margin="2"></TextBox>
+        <Label Content="Каталог клон:" VerticalAlignment="Center" Grid.Column="0" Grid.Row="1"></Label>
+        <TextBox x:Name="TextBoxDestinFolder" Text="{Binding Source={x:Static p:Settings.Default}, Path=DestinFolderName, Mode=TwoWay}" Width="auto" VerticalAlignment="Center" Grid.Column="1" Grid.Row="1" Margin="2"></TextBox>
         <Button x:Name="OpenDestinationFolder" Click="OpenDestinationFolder_Click" Grid.Column="2" Grid.Row="1" MinWidth="50" Margin="7" Height="28">...</Button>
 
         <Label Content="Файл логирования:" VerticalAlignment="Center" Grid.Column="0" Grid.Row="2"></Label>
@@ -55,6 +55,7 @@
         <ListView x:Name="ListOfChanges" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" Grid.RowSpan="3"  Margin="5">
             <ListView.View>
                 <GridView>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Id}"></GridViewColumn>
                     <GridViewColumn Header="">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
@@ -84,9 +85,13 @@
                 </GridView>
             </ListView.View>
         </ListView>
+
+        <Button x:Name="ButtonExplorer" Click="ButtonExplorer_OnClick" ToolTip="Открыть папки источника и клона" Grid.Column="2" Grid.Row="4" Height="30" Width="50">
+            <Image x:Name="ImageExplorer" Source="/Icons/Explorer.png" Style="{StaticResource IconsStyle}"/>
+        </Button>
         
         <Button x:Name="ButtonStart" Click="ButtonStart_Click" ToolTip="Запуск синхронизатора" Grid.Column="2" Grid.Row="5">
-            <Image x:Name="ImagePlay" Source="/Icons/Start.png" Style="{StaticResource IconsStyle}"/>
+            <Image x:Name="ImagePlay" Source="/Icons/Start.png" Height="25"/>
         </Button>
         <Button x:Name="ButtonStop" Click="ButtonStop_Click" ToolTip="Остановка" Grid.Column="2" Grid.Row="6">
             <Image x:Name="ImageStop" Source="/Icons/Stop.png" Style="{StaticResource IconsStyle}"/>
@@ -94,7 +99,7 @@
 
 
         <TextBlock x:Name="TextBoxStatus" Text="Готов!" VerticalAlignment="Center" Grid.Row="9" Margin="5" Grid.ColumnSpan="2"></TextBlock>
-            <ProgressBar x:Name="ProgressBarChanges" Minimum="0" Maximum="100" Height="10" Grid.Row="8" Margin="5,5,5,5" Grid.ColumnSpan="2"></ProgressBar>
+        <ProgressBar x:Name="ProgressBarChanges" Minimum="0" Maximum="100" Height="10" Grid.Column="1" Grid.Row="4" Margin="5,25,15,0" IsIndeterminate="True"></ProgressBar>
 
 
         <Button x:Name="ButtonClose" Click="ButtonClose_Click" ToolTip="Выход" Grid.Column="2" Grid.Row="9">

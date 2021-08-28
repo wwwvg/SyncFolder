@@ -8,6 +8,7 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using MessageBox = System.Windows.MessageBox;
 
 namespace SyncFolder
@@ -112,26 +113,41 @@ namespace SyncFolder
                 return;
             }
 
-           // TextBoxStatus.Text = "Выполняется синхронизация...";
+            TextBoxStatus.Text = "Выполняется синхронизация";
             TextBoxStatus.ToolTip = TextBoxStatus.Text;
             ButtonStop.IsEnabled = true;
             ButtonStart.IsEnabled = false;
             UnlockButtons(false);
             
         }
+
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
         {
+            DateTime startTime = DateTime.Now;
             while (true)
             {
+                
                 InputParams input = (InputParams) e.Argument;
                 DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, 
-                    _BackgroundWorker, ListOfChanges, _Datas); //РЕЗУЛЬТАТ
+                    _BackgroundWorker, ListOfChanges, _Datas, TextBoxStatus); //РЕЗУЛЬТАТ
                 if (_BackgroundWorker.CancellationPending)
                 {
                     e.Cancel = true;
                     return;
                 }
                 Thread.Sleep(input.Interval); //установка значения задаваемого пользователем!
+                TimeSpan timeSpan = DateTime.Now - startTime;
+                if (timeSpan.Milliseconds % 100 == 0)
+                {
+                    TextBoxStatus.Dispatcher.BeginInvoke(DispatcherPriority.Normal,
+                        (ThreadStart) delegate()
+                        {
+                            TextBoxStatus.Text += ".";
+                            TextBoxStatus.Text = TextBoxStatus.Text.Replace("..........", ".");
+                        }
+                    );
+                    
+                }
             }
         }
 

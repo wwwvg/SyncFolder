@@ -19,6 +19,7 @@ namespace SyncFolder
     {
         private static BackgroundWorker _BackgroundWorker;
         private static ListView _ListView;
+        private static TextBlock _TextBoxStatusBox;
         private static IList<Data> _Datas;
         private static string _LogFileName;
 
@@ -31,12 +32,13 @@ namespace SyncFolder
         private const string _sFOLDER_ICON =  "\\Icons\\folder.png";
         
         public static IList<Data> Find(string originFolder, string destinFolder, string logFileName, 
-                                            BackgroundWorker backgroundWorker, ListView listView, IList<Data> datas)
+                                            BackgroundWorker backgroundWorker, ListView listView, IList<Data> datas, TextBlock textBoxStatusBox)
         {
             _BackgroundWorker = backgroundWorker;
             _ListView = listView;
             _Datas = datas;
             _LogFileName = logFileName;
+            _TextBoxStatusBox = textBoxStatusBox;
             List<string> list1 = GetRecursFiles(originFolder);
             List<string> list2 = GetRecursFiles(destinFolder);
             List<string> listFolders1 = new List<string>();
@@ -60,7 +62,7 @@ namespace SyncFolder
                 {
                     dirInfo.Create();
                     var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder};
-                    updateListView(data);
+                    UpdateListView(data);
                     x++;
                 }
             }
@@ -81,7 +83,7 @@ namespace SyncFolder
                 {
                     fileInf.CopyTo(file);
                     var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
-                    updateListView(data , x, maxRecords);
+                    UpdateListView(data , x, maxRecords);
                     x++;
                 }
             }
@@ -98,7 +100,7 @@ namespace SyncFolder
                 {
                     fileInf.Delete();
                     var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
-                    updateListView(data, x, maxRecords);
+                    UpdateListView(data, x, maxRecords);
                     x++;
                 }
             }
@@ -115,7 +117,7 @@ namespace SyncFolder
                 {
                     dirInfo.Delete(true);
                     var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder };
-                    updateListView(data, x, maxRecords);
+                    UpdateListView(data, x, maxRecords);
                     x++;
                 }
             }
@@ -145,7 +147,7 @@ namespace SyncFolder
                             if (fileInf.Exists)
                                 fileInf.CopyTo(fileName2, true);
                             var data = new Data { TypeOfAction = _sUPDATED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 };
-                            updateListView(data, x, maxRecords);
+                            UpdateListView(data, x, maxRecords);
                             x++;
                         }
                     }
@@ -157,17 +159,28 @@ namespace SyncFolder
                 return new List<Data>();
             }
             _BackgroundWorker.ReportProgress(0, false);
+
             return _Datas; //ВОЗВРАЩАЕТСЯ СПИСОК ИЗМЕНЕНИЙ ДЛЯ LISTVIEW
             
         }
 
-        private static void updateListView(Data data, int x = 50, int maxRecords = 100) // х - процент изменений
+        private static void UpdateStatusBox(object sender, EventArgs e)
+        {
+            _TextBoxStatusBox.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ThreadStart) delegate()
+                {
+                    _TextBoxStatusBox.Text += ".";
+                }
+            );
+        }
+        private static void UpdateListView(Data data, int x = 50, int maxRecords = 100) // х - процент изменений
         {
             _BackgroundWorker.ReportProgress(Convert.ToInt32(((decimal)x / (decimal)maxRecords) * 100), true);
             _ListView.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ThreadStart)delegate ()
                 {
                     data.Id = _Datas.Count + 1;
                     _Datas.Add(data);
+                    
+                    #region ЗАПИСЬ *.CSV
                     using (StreamWriter sw = new StreamWriter(_LogFileName, true, System.Text.Encoding.Default))
                     {
                         string sAction = string.Empty;
@@ -198,6 +211,7 @@ namespace SyncFolder
                         string csv = $"{sAction}\t{sFileType}\t{data.TimeStamp}\t{DateTime.Now.ToString("dd/MM/yyyy")}\t{data.Path}\n";
                         sw.Write(csv);
                     }
+                    #endregion
                 }
             );
         }

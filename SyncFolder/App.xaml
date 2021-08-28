@@ -16,7 +16,7 @@
             <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
             <Setter Property="Button.HorizontalAlignment" Value="Left" />
             <Setter Property="Button.Margin" Value="5" />
-            <Setter Property="Button.Height" Value="28" />
+            <Setter Property="Button.Height" Value="30" />
             <Setter Property="Button.Width" Value="50" />
 
         </Style>

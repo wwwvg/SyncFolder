@@ -5,21 +5,38 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace SyncFolder
 {
     class DifferenceFinder
     {
         private static BackgroundWorker _BackgroundWorker;
-        public static IList<Data> _Datas = new List<Data>();
+        private static ListView _ListView;
+        private static IList<Data> _Datas;
+        private static string _LogFileName;
 
-        public static IList<Data> Find(string originFolder, string destinFolder, string logFileName, int interval, BackgroundWorker backgroundWorker)
+        private const string _sFOLDER = "Папка";
+        private const string _sFILE = "Файл";
+        private const string _sADDED_ICON =   "\\Icons\\added.png";
+        private const string _sDELETED_ICON = "\\Icons\\deleted.png";
+        private const string _sUPDATED_ICON = "\\Icons\\update.png";
+        private const string _sFILE_ICON =    "\\Icons\\file.png";
+        private const string _sFOLDER_ICON =  "\\Icons\\folder.png";
+        
+        public static IList<Data> Find(string originFolder, string destinFolder, string logFileName, 
+                                            BackgroundWorker backgroundWorker, ListView listView, IList<Data> datas)
         {
             _BackgroundWorker = backgroundWorker;
+            _ListView = listView;
+            _Datas = datas;
+            _LogFileName = logFileName;
             List<string> list1 = GetRecursFiles(originFolder);
             List<string> list2 = GetRecursFiles(destinFolder);
             List<string> listFolders1 = new List<string>();
@@ -27,44 +44,46 @@ namespace SyncFolder
             List<string> listFolders2 = new List<string>();
             List<string> listFiles2 = new List<string>();
 
-
+            //string sDateTimeNow = DateTime.Now.ToString("dd/MM/yy HH:mm:ss");
 //ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
 
-            listFolders1 = (from file in list1 where file.Contains("Папка") select file.Replace("Папка" + originFolder, "")).ToList(); //папки в источнике
-            listFolders2 = (from file in list2 where file.Contains("Папка") select file.Replace("Папка" + destinFolder, "")).ToList(); //папки в приемнике
+            listFolders1 = (from file in list1 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + originFolder, "")).ToList(); //папки в источнике
+            listFolders2 = (from file in list2 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + destinFolder, "")).ToList(); //папки в приемнике
 
             //ищем новые папки в 1м каталоге и добавляем их во 2й
             var query = from folder in listFolders1.Except(listFolders2) select destinFolder + folder;
-            int ii = 0;
+            int x = 0;
             foreach (var folder in query)
             {
                 DirectoryInfo dirInfo = new DirectoryInfo(folder);
                 if (!dirInfo.Exists)
                 {
                     dirInfo.Create();
-                    _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder});
-                   // if(ii < 20) _BackgroundWorker.ReportProgress(ii++);
+                    var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder};
+                    updateListView(data);
+                    x++;
                 }
             }
 
 //ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ИСТОЧНИКА
 
-            listFiles1 = (from file in list1 where file.Contains("Файл") select file.Replace("Файл" + originFolder, "")).ToList(); //файлы в источнике
-            listFiles2 = (from file in list2 where file.Contains("Файл") select file.Replace("Файл" + destinFolder, "")).ToList(); //файлы в приемнике
+            listFiles1 = (from file in list1 where file.Contains(_sFILE) select file.Replace(_sFILE + originFolder, "")).ToList(); //файлы в источнике
+            listFiles2 = (from file in list2 where file.Contains(_sFILE) select file.Replace(_sFILE + destinFolder, "")).ToList(); //файлы в приемнике
 
             //ищем новые файлы в 1м каталоге и добавляем их во 2й
             query = from file in listFiles1.Except(listFiles2) select destinFolder + file;
-
+            int maxRecords = Math.Max(listFolders1.Count, listFolders2.Count) + Math.Max(listFiles1.Count, listFiles2.Count);
+            
             foreach (var file in query)
             {
                 FileInfo fileInf = new FileInfo(file.Replace(destinFolder, originFolder));
                 if (fileInf.Exists)
                 {
                     fileInf.CopyTo(file);
-                    _Datas.Add(new Data { ImagePath = @"\Icons\added.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
-                   // if (ii < 40) _BackgroundWorker.ReportProgress(ii++);
+                    var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
+                    updateListView(data , x, maxRecords);
+                    x++;
                 }
-
             }
 
 //УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ КЛОНА
@@ -78,8 +97,9 @@ namespace SyncFolder
                 if (fileInf.Exists)
                 {
                     fileInf.Delete();
-                    _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file });
-                   // if (ii < 60) _BackgroundWorker.ReportProgress(ii++);
+                    var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
+                    updateListView(data, x, maxRecords);
+                    x++;
                 }
             }
 
@@ -94,11 +114,12 @@ namespace SyncFolder
                 if (dirInfo.Exists)
                 {
                     dirInfo.Delete(true);
-                    _Datas.Add(new Data { ImagePath = @"\Icons\deleted.png", TypeOfFile = @"\Icons\folder.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder });
-                    //if (ii < 80) _BackgroundWorker.ReportProgress(ii++);
+                    var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder };
+                    updateListView(data, x, maxRecords);
+                    x++;
                 }
             }
-                //СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
+//СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
 
             list1 = GetRecursFiles(originFolder);
             list2 = GetRecursFiles(destinFolder);
@@ -108,9 +129,9 @@ namespace SyncFolder
                 for (int i = 0; i < list1.Count; i++)
                 {
                     if (list1.Count != list2.Count) break;
-                    string fileName1 = list1[i].Replace("Файл", "");
-                    string fileName2 = list2[i].Replace("Файл", "");
-                    if (list1[i].Contains("Папка") || list2[i].Contains("Папка")) continue;
+                    string fileName1 = list1[i].Replace(_sFILE, "");
+                    string fileName2 = list2[i].Replace(_sFILE, "");
+                    if (list1[i].Contains(_sFOLDER) || list2[i].Contains(_sFOLDER)) continue;
 
                     if (fileName1.Replace(originFolder,"") == fileName2.Replace(destinFolder,""))
                     {
@@ -123,8 +144,9 @@ namespace SyncFolder
                             fileInf = new FileInfo(fileName1);
                             if (fileInf.Exists)
                                 fileInf.CopyTo(fileName2, true);
-                            _Datas.Add(new Data { ImagePath = @"\Icons\update.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 });
-                         //   if (ii < 90) _BackgroundWorker.ReportProgress(ii++);
+                            var data = new Data { TypeOfAction = _sUPDATED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 };
+                            updateListView(data, x, maxRecords);
+                            x++;
                         }
                     }
                 }
@@ -132,11 +154,54 @@ namespace SyncFolder
             catch (System.Exception e)
             {
                 MessageBox.Show(e.Message);
+                return new List<Data>();
             }
-            
+            _BackgroundWorker.ReportProgress(0, false);
             return _Datas; //ВОЗВРАЩАЕТСЯ СПИСОК ИЗМЕНЕНИЙ ДЛЯ LISTVIEW
             
         }
+
+        private static void updateListView(Data data, int x = 50, int maxRecords = 100) // х - процент изменений
+        {
+            _BackgroundWorker.ReportProgress(Convert.ToInt32(((decimal)x / (decimal)maxRecords) * 100), true);
+            _ListView.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ThreadStart)delegate ()
+                {
+                    data.Id = _Datas.Count + 1;
+                    _Datas.Add(data);
+                    using (StreamWriter sw = new StreamWriter(_LogFileName, true, System.Text.Encoding.Default))
+                    {
+                        string sAction = string.Empty;
+                        switch (data.TypeOfAction)
+                        {
+                            case _sADDED_ICON:
+                                sAction = "[+]";
+                                break;
+                            case _sDELETED_ICON:
+                                sAction = "[-]";
+                                break;
+                            case _sUPDATED_ICON:
+                                sAction = "[%]";
+                                break;
+                        }
+
+                        string sFileType = string.Empty;
+                        switch (data.TypeOfFile)
+                        {
+                            case _sFILE_ICON:
+                                sFileType = "File";
+                                break;
+                            case _sFOLDER_ICON:
+                                sFileType = "Folder";
+                                break;
+                        }
+
+                        string csv = $"{sAction}\t{sFileType}\t{data.TimeStamp}\t{DateTime.Now.ToString("dd/MM/yyyy")}\t{data.Path}\n";
+                        sw.Write(csv);
+                    }
+                }
+            );
+        }
+
         #region РЕКУРСИВНЫЙ ПОИСК ФАЙЛОВ И КАТАЛОГОВ
         private static List<string> GetRecursFiles(string start_path)
         {
@@ -147,19 +212,19 @@ namespace SyncFolder
                 foreach (string folder in folders)
                 {
                     
-                    list.Add("Папка" + folder/*.Replace(start_path + "\\", "")*/);
+                    list.Add(_sFOLDER + folder/*.Replace(start_path + "\\", "")*/);
                     list.AddRange(GetRecursFiles(folder));
                    
                 }
                 string[] files = Directory.GetFiles(start_path);
                 foreach (string filename in files)
                 {
-                    list.Add("Файл" + filename/*.Replace(start_path + "\\", "")*/);
+                    list.Add(_sFILE + filename/*.Replace(start_path + "\\", "")*/);
                 }
             }
             catch (System.Exception e)
             {
-                MessageBox.Show(e.Message);
+                throw e;
             }
             return list;
         }
@@ -243,3 +308,15 @@ namespace SyncFolder
                 }
             }
             */
+
+
+/*
+Написать программу, которая будет синхронизировать два каталога: каталог - источник и каталог-реплику. 
+Задача программы – приводить содержимое каталога-реплики в соответствие содержимому каталога-источника.
+Требования:
+•	Сихронизация должна быть односторонней: после завершения процесса синхронизации содержимое каталога-реплики должно в 
+точности соответствовать содержимому каталогу-источника;
+•	Синхронизация должна производиться периодически;
+•	Операции создания/копирования/удаления объектов должны логироваться в файле и выводиться в консоль;
+•	Пути к каталогам, интервал синхронизации и путь к файлу логирования должны задаваться параметрами командной строки при запуске программы.
+*/

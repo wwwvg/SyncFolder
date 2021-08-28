@@ -17,8 +17,8 @@ namespace SyncFolder
                 PropertyChanged(this, e);
         }
 
-        private string id;
-        public string Id
+        private int id;
+        public int Id
         {
             get { return id; }
             set
@@ -28,14 +28,14 @@ namespace SyncFolder
             }
         }
 
-        private string imagePath;
-        public string ImagePath
+        private string _typeOfAction;
+        public string TypeOfAction
         {
-            get { return imagePath; }
+            get { return _typeOfAction; }
             set
             {
-                imagePath = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ImagePath"));
+                _typeOfAction = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("TypeOfAction"));
             }
         }
 

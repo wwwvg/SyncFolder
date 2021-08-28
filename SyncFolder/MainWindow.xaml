@@ -30,6 +30,10 @@
             <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
@@ -52,19 +56,19 @@
 
         <Label Content="Изменения:" VerticalAlignment="Center" Grid.Column="0" Grid.Row="4" Margin="5,15,5,0"></Label>
 
-        <ListView x:Name="ListOfChanges" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" Grid.RowSpan="3"  Margin="5">
+        <ListView x:Name="ListOfChanges" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" Grid.RowSpan="7"  Margin="5">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn DisplayMemberBinding="{Binding Path=Id}"></GridViewColumn>
-                    <GridViewColumn Header="">
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Id}" Width="30">№</GridViewColumn>
+                    <GridViewColumn Header="Изм." Width="30">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <Image Source="{Binding Path=ImagePath}" MaxHeight="15">
+                                <Image Source="{Binding Path=TypeOfAction}" MaxHeight="15">
                                 </Image>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="">
+                    <GridViewColumn Header="Тип">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <Image Source="{Binding Path=TypeOfFile}" MaxHeight="15">
@@ -90,20 +94,35 @@
             <Image x:Name="ImageExplorer" Source="/Icons/Explorer.png" Style="{StaticResource IconsStyle}"/>
         </Button>
         
-        <Button x:Name="ButtonStart" Click="ButtonStart_Click" ToolTip="Запуск синхронизатора" Grid.Column="2" Grid.Row="5">
+        <Button x:Name="ButtonStart" Click="ButtonStart_Click" ToolTip="Запуск синхронизатора" Grid.Column="2" Grid.Row="6">
             <Image x:Name="ImagePlay" Source="/Icons/Start.png" Height="25"/>
         </Button>
-        <Button x:Name="ButtonStop" Click="ButtonStop_Click" ToolTip="Остановка" Grid.Column="2" Grid.Row="6">
+        <Button x:Name="ButtonStop" Click="ButtonStop_Click" ToolTip="Остановка" Grid.Column="2" Grid.Row="7">
             <Image x:Name="ImageStop" Source="/Icons/Stop.png" Style="{StaticResource IconsStyle}"/>
         </Button>
 
+        <!--МЕСТО ПОД 2-3 КНОПКИ-->
 
-        <TextBlock x:Name="TextBoxStatus" Text="Готов!" VerticalAlignment="Center" Grid.Row="9" Margin="5" Grid.ColumnSpan="2"></TextBlock>
-        <ProgressBar x:Name="ProgressBarChanges" Minimum="0" Maximum="100" Height="10" Grid.Column="1" Grid.Row="4" Margin="5,25,15,0" IsIndeterminate="True"></ProgressBar>
+        <TextBlock x:Name="TextBoxStatus" Text="Готов!" VerticalAlignment="Center" Grid.Row="12" Margin="5" Grid.ColumnSpan="2"></TextBlock>
+        <ProgressBar x:Name="ProgressBarChanges" Minimum="0" Maximum="100" Height="10" Grid.Column="1" Grid.Row="4" Margin="5,25,15,0" ></ProgressBar>
 
 
-        <Button x:Name="ButtonClose" Click="ButtonClose_Click" ToolTip="Выход" Grid.Column="2" Grid.Row="9">
-            <Image x:Name="ImageClose" Source="/Icons/Close.png" Style="{StaticResource IconsStyle}"/>
-        </Button>
+        <!--<Button x:Name="ButtonClose" Click="ButtonClose_Click" ToolTip="Выход" Grid.Column="2" Grid.Row="9">-->
+            <Image Name="ImageClose" Grid.Column="2" Grid.Row="12" Margin="0,0,0,10" Grid.RowSpan="2" MouseLeftButtonUp="ImageClose_MouseDown">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="/Icons/Close.png"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=ImageClose}" Value="True">
+                                        <Setter Property="Source" Value="/Icons/Close2.png"></Setter>           
+                                    </DataTrigger>
+                                </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                <Image.Effect>
+                    <BlurEffect Radius="1"></BlurEffect>
+                </Image.Effect>
+                </Image>
+        <!--</Button>-->
     </Grid>
 </Window>

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
@@ -17,21 +18,23 @@ namespace SyncFolder
     public partial class MainWindow : Window
     {
         private BackgroundWorker _BackgroundWorker;
-        private List<Data> _Datas;
+        private IList<Data> _Datas = new ObservableCollection<Data>();
         private Process _Process1;
         private Process _Process2;
         public MainWindow()
         {
             InitializeComponent();
             _BackgroundWorker = (BackgroundWorker)FindResource("BackgroundWorker");
-            
             ButtonStop.IsEnabled = false;
             ProgressBarChanges.Visibility = Visibility.Hidden;
+            ListOfChanges.ItemsSource = _Datas;
+            Settings.Default.PropertyChanged += Default_PropertyChanged;
         }
         #region ОТКРЫТИЕ ПАПОК
         private void OpenOriginFolder_Click(object sender, RoutedEventArgs e)
         {
             FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
+            folderBrowser.SelectedPath = TextBoxOriginFolder.Text;
             DialogResult result = folderBrowser.ShowDialog();
             if (!string.IsNullOrWhiteSpace(folderBrowser.SelectedPath))
                 TextBoxOriginFolder.Text = folderBrowser.SelectedPath.ToString();
@@ -40,6 +43,7 @@ namespace SyncFolder
         private void OpenDestinationFolder_Click(object sender, RoutedEventArgs e)
         {
             FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
+            folderBrowser.SelectedPath = TextBoxDestinFolder.Text;
             DialogResult result = folderBrowser.ShowDialog();
             if (!string.IsNullOrWhiteSpace(folderBrowser.SelectedPath))
                 TextBoxDestinFolder.Text = folderBrowser.SelectedPath.ToString();
@@ -47,10 +51,16 @@ namespace SyncFolder
 
         private void OpenLogFile_Click(object sender, RoutedEventArgs e)
         {
-            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog(); //диалоговое окно выбора файла
-            Nullable<bool> result = dlg.ShowDialog();
-            if (result == true)
-                TextBoxLogFile.Text = dlg.FileName;     //установил текст в текстовое поле
+            try
+            {
+                Microsoft.Win32.OpenFileDialog
+                    dlg = new Microsoft.Win32.OpenFileDialog(); //диалоговое окно выбора файла
+                dlg.InitialDirectory = TextBoxLogFile.Text;
+                var result = dlg.ShowDialog();
+                if (result == true)
+                    TextBoxLogFile.Text = dlg.FileName;
+            }
+            catch(Exception){}//
         }
         #endregion
 
@@ -77,64 +87,59 @@ namespace SyncFolder
                 return false;
             }
 
-                                                                      
-                                                                                                    
+            if (!File.Exists(TextBoxLogFile.Text))
+            {
+                TextBoxStatus.Text = "Файла не существует!";
+                TextBoxStatus.ToolTip = TextBoxStatus.Text;
+                return false;
+            }
             return true;
         }
         #endregion
 
-        private void ButtonStop_Click(object sender, RoutedEventArgs e)
+        private void ButtonStart_Click(object sender, RoutedEventArgs e)        //START
         {
-            ButtonStop.IsEnabled = false;
-            ButtonStart.IsEnabled = true;
-            _BackgroundWorker.CancelAsync();                //остановка BackgroundWorker
-        }
-
-       
-
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            Settings.Default.Save();
-            base.OnClosing(e);
-        }
-
-        private void ButtonStart_Click(object sender, RoutedEventArgs e)
-        {
-            if (!CheckInputValues()) return;
+            if (!CheckInputValues()) return;        //проверка входных значений
 
             InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
-            _BackgroundWorker.RunWorkerAsync(inputParams);                 //запуск BackgroundWorker
-
-            // if()
-            TextBoxStatus.Text = "Синхронизация начата!";
-            TextBoxStatus.ToolTip = TextBoxStatus.Text;
-            ProgressBarChanges.Visibility = Visibility.Visible;
-            ButtonStop.IsEnabled = true;
-            ButtonStart.IsEnabled = false;
-
-        }
-        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
-        {           
-            InputParams input = (InputParams)e.Argument;
-
-            _Datas = new List<Data>();
-            _Datas.AddRange(DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, input.Interval, _BackgroundWorker));//РЕЗУЛЬТАТ
-            setId(_Datas);
-
-            if (_BackgroundWorker.CancellationPending)
+            try
             {
-                e.Cancel = true;
+                _BackgroundWorker.RunWorkerAsync(inputParams); //==================================ЗАПУСК BackgroundWorker=====================================
+            }
+            catch (System.InvalidOperationException)//вылетает <<System.InvalidOperationException>> если быстро херачить туда-сюда старт/стоп
+            {
+                //MessageBox.Show(ex.Message);
                 return;
             }
+
+           // TextBoxStatus.Text = "Выполняется синхронизация...";
+            TextBoxStatus.ToolTip = TextBoxStatus.Text;
+            ButtonStop.IsEnabled = true;
+            ButtonStart.IsEnabled = false;
+            UnlockButtons(false);
             
-            e.Result = _Datas;//РЕЗУЛЬТАТ
+        }
+        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
+        {
+            while (true)
+            {
+                InputParams input = (InputParams) e.Argument;
+                DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, 
+                    _BackgroundWorker, ListOfChanges, _Datas); //РЕЗУЛЬТАТ
+                if (_BackgroundWorker.CancellationPending)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                Thread.Sleep(input.Interval); //установка значения задаваемого пользователем!
+            }
         }
 
         private void BackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)  //КОНЕЦ РАБОТЫ
         {
             if (e.Cancelled)
             {
-                TextBoxStatus.Text = "Синхронизация прервана!";
+                TextBoxStatus.Text = "Синхронизация остановлена.";
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
             else if(e.Error != null)
@@ -142,32 +147,22 @@ namespace SyncFolder
                 TextBoxStatus.Text = e.Error.Message;
                 TextBoxStatus.ToolTip = TextBoxStatus.Text;
             }
-            else
-            {
-               // List<Data> _Datas = (List<Data>)e.Result;//РЕЗУЛЬТАТ
-               // setId(_Datas);
-                ListOfChanges.ItemsSource = (List<Data>)e.Result;//РЕЗУЛЬТАТ;
 
-                TextBoxStatus.Text = "Синхронизация выполнена!";
-                TextBoxStatus.ToolTip = TextBoxStatus.Text;
-            }
             ButtonStop.IsEnabled = false;
             ButtonStart.IsEnabled = true;
+            UnlockButtons(true);
             ProgressBarChanges.Value = 0;
-            ProgressBarChanges.Visibility = Visibility.Hidden;
-        }
-
-        private void setId(List<Data> datas)
-        {
-            for (int i = 0; i < datas.Count; i++)
-            {
-                datas[i].Id = (i + 1).ToString();
-            }
         }
 
         private void BackgroundWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)        //ПРОГРЕСС РАБОТЫ
         {
             ProgressBarChanges.Value = e.ProgressPercentage;
+            if((bool)e.UserState == false)
+                ProgressBarChanges.Visibility = Visibility.Hidden;
+            else
+            {
+                ProgressBarChanges.Visibility = Visibility.Visible;
+            }
         }
 
         private void ButtonClose_Click(object sender, RoutedEventArgs e)
@@ -179,6 +174,41 @@ namespace SyncFolder
         {
             _Process1 = Process.Start("explorer.exe", TextBoxOriginFolder.Text);
             _Process2 = Process.Start("explorer.exe", TextBoxDestinFolder.Text);
+        }
+
+        private void UnlockButtons(bool isEnabled)
+        {
+            TextBoxInterval.IsEnabled = isEnabled;
+            TextBoxLogFile.IsEnabled = isEnabled;
+            TextBoxOriginFolder.IsEnabled = isEnabled;
+            TextBoxDestinFolder.IsEnabled = isEnabled;
+            OpenOriginFolder.IsEnabled = isEnabled;
+            OpenDestinationFolder.IsEnabled = isEnabled;
+            OpenLogFile.IsEnabled = isEnabled;
+        }
+
+        private void ImageClose_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Settings.Default.Save();
+            System.Windows.Application.Current.Shutdown();
+        }
+
+        private void ButtonStop_Click(object sender, RoutedEventArgs e)
+        {
+            ButtonStop.IsEnabled = false;
+            ButtonStart.IsEnabled = true;
+            _BackgroundWorker.CancelAsync();                //остановка BackgroundWorker
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            Settings.Default.Save();
+            base.OnClosing(e);
+        }
+
+        void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            Settings.Default.Save();
         }
     }
 }

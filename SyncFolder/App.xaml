@@ -4,6 +4,23 @@
              xmlns:local="clr-namespace:SyncFolder"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+
+        <Style x:Key="ButtonOpenCatalog">
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="3" />
+                    <Setter Property="Margin" Value="5" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                </Style>
+            </Style.Resources>
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            <Setter Property="Button.HorizontalAlignment" Value="Left" />
+            <Setter Property="Button.Margin" Value="5" />
+            <Setter Property="Button.Height" Value="28" />
+            <Setter Property="Button.Width" Value="50" />
+
+        </Style>
+
         <Style TargetType="Button">
             <Style.Resources>
                 <Style TargetType="Border">

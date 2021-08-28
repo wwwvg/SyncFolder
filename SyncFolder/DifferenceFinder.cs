@@ -155,7 +155,8 @@ namespace SyncFolder
             }
             catch (System.Exception e)
             {
-                MessageBox.Show(e.Message);
+                UpdateStatusBox(e.Message);
+                //MessageBox.Show(e.Message);
                 return new List<Data>();
             }
             _BackgroundWorker.ReportProgress(0, false);
@@ -164,11 +165,11 @@ namespace SyncFolder
             
         }
 
-        private static void UpdateStatusBox(object sender, EventArgs e)
-        {
+        private static void UpdateStatusBox(string s)
+        { 
             _TextBoxStatusBox.Dispatcher.BeginInvoke(DispatcherPriority.Normal, (ThreadStart) delegate()
                 {
-                    _TextBoxStatusBox.Text += ".";
+                    _TextBoxStatusBox.Text = s;
                 }
             );
         }

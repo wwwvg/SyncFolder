@@ -19,6 +19,7 @@ namespace SyncFolder
     public partial class MainWindow : Window
     {
         private BackgroundWorker _BackgroundWorker;
+        private BackgroundWorker _BackgroundWorker2;
         private IList<Data> _Datas = new ObservableCollection<Data>();
         private Process _Process1;
         private Process _Process2;
@@ -30,6 +31,15 @@ namespace SyncFolder
             ProgressBarChanges.Visibility = Visibility.Hidden;
             ListOfChanges.ItemsSource = _Datas;
             Settings.Default.PropertyChanged += Default_PropertyChanged;
+        }
+        private void BackgroundWorkerInit()
+        {
+            _BackgroundWorker2.WorkerReportsProgress = true;
+            _BackgroundWorker2.WorkerSupportsCancellation = true;
+            _BackgroundWorker2.DoWork += BackgroundWorker_DoWork;
+            _BackgroundWorker2.ProgressChanged += BackgroundWorker_ProgressChanged;
+            _BackgroundWorker2.RunWorkerCompleted += BackgroundWorker_RunWorkerCompleted;
+
         }
         #region ОТКРЫТИЕ ПАПОК
         private void OpenOriginFolder_Click(object sender, RoutedEventArgs e)
@@ -105,7 +115,10 @@ namespace SyncFolder
             InputParams inputParams = new InputParams(TextBoxOriginFolder.Text, TextBoxDestinFolder.Text, TextBoxLogFile.Text, Int32.Parse(TextBoxInterval.Text));
             try
             {
-                _BackgroundWorker.RunWorkerAsync(inputParams); //==================================ЗАПУСК BackgroundWorker=====================================
+                _BackgroundWorker2 = new BackgroundWorker();
+                BackgroundWorkerInit();
+                _BackgroundWorker2.RunWorkerAsync(inputParams); //==================================ЗАПУСК BackgroundWorker=====================================
+                //_BackgroundWorker.RunWorkerAsync(inputParams); //==================================ЗАПУСК BackgroundWorker=====================================
             }
             catch (System.InvalidOperationException)//вылетает <<System.InvalidOperationException>> если быстро херачить туда-сюда старт/стоп
             {
@@ -124,29 +137,33 @@ namespace SyncFolder
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)//НАЧАЛО РАБОТЫ
         {
             DateTime startTime = DateTime.Now;
+            int k = 1;
             while (true)
             {
-                
+                k++;
                 InputParams input = (InputParams) e.Argument;
                 DifferenceFinder.Find(input.OriginFolder, input.DestinationFolder, input.LogFileName, 
-                    _BackgroundWorker, ListOfChanges, _Datas, TextBoxStatus); //РЕЗУЛЬТАТ
-                if (_BackgroundWorker.CancellationPending)
+                    _BackgroundWorker2, ListOfChanges, _Datas, TextBoxStatus); //РЕЗУЛЬТАТ
+
+                if (_BackgroundWorker2.CancellationPending)
                 {
                     e.Cancel = true;
                     return;
                 }
                 Thread.Sleep(input.Interval); //установка значения задаваемого пользователем!
-                TimeSpan timeSpan = DateTime.Now - startTime;
-                if (timeSpan.Milliseconds % 100 == 0)
+
+                if ((input.Interval * k) % 100 == 0)
                 {
                     TextBoxStatus.Dispatcher.BeginInvoke(DispatcherPriority.Normal,
                         (ThreadStart) delegate()
                         {
-                            TextBoxStatus.Text += ".";
-                            TextBoxStatus.Text = TextBoxStatus.Text.Replace("..........", ".");
+                            if (TextBoxStatus.Text.Contains("Выполняется синхронизация"))
+                            {
+                                TextBoxStatus.Text += ".";
+                                TextBoxStatus.Text = TextBoxStatus.Text.Replace("..........", ".");
+                            }
                         }
                     );
-                    
                 }
             }
         }
@@ -213,7 +230,8 @@ namespace SyncFolder
         {
             ButtonStop.IsEnabled = false;
             ButtonStart.IsEnabled = true;
-            _BackgroundWorker.CancelAsync();                //остановка BackgroundWorker
+            _BackgroundWorker2.CancelAsync();                //остановка BackgroundWorker
+            UnlockButtons(true);
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -225,6 +243,11 @@ namespace SyncFolder
         void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             Settings.Default.Save();
+        }
+
+        private void ButtonClearList_OnClick(object sender, RoutedEventArgs e)
+        {
+            _Datas.Clear();
         }
     }
 }

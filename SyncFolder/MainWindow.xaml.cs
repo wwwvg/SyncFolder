@@ -28,6 +28,7 @@ namespace SyncFolder
             InitializeComponent();
             _BackgroundWorker = (BackgroundWorker)FindResource("BackgroundWorker");
             ButtonStop.IsEnabled = false;
+            ButtonClearList.IsEnabled = false;
             ProgressBarChanges.Visibility = Visibility.Hidden;
             ListOfChanges.ItemsSource = _Datas;
             Settings.Default.PropertyChanged += Default_PropertyChanged;
@@ -183,6 +184,7 @@ namespace SyncFolder
 
             ButtonStop.IsEnabled = false;
             ButtonStart.IsEnabled = true;
+            SetVisibilityForEraser();
             UnlockButtons(true);
             ProgressBarChanges.Value = 0;
         }
@@ -197,12 +199,6 @@ namespace SyncFolder
                 ProgressBarChanges.Visibility = Visibility.Visible;
             }
         }
-
-        private void ButtonClose_Click(object sender, RoutedEventArgs e)
-        {
-            System.Windows.Application.Current.Shutdown();
-        }
-
         private void ButtonExplorer_OnClick(object sender, RoutedEventArgs e)
         {
             _Process1 = Process.Start("explorer.exe", TextBoxOriginFolder.Text);
@@ -232,6 +228,7 @@ namespace SyncFolder
             ButtonStart.IsEnabled = true;
             _BackgroundWorker2.CancelAsync();                //остановка BackgroundWorker
             UnlockButtons(true);
+            SetVisibilityForEraser();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -248,6 +245,17 @@ namespace SyncFolder
         private void ButtonClearList_OnClick(object sender, RoutedEventArgs e)
         {
             _Datas.Clear();
+            ButtonClearList.IsEnabled = false;
+        }
+
+        private void SetVisibilityForEraser()
+        {
+            if (_Datas.Count == 0)
+                ButtonClearList.IsEnabled = false;
+            else
+            {
+                ButtonClearList.IsEnabled = true;
+            }
         }
     }
 }

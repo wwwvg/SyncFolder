@@ -96,18 +96,19 @@
             </ListView.View>
         </ListView>
 
-        <Button x:Name="ButtonExplorer" Click="ButtonExplorer_OnClick" ToolTip="Открыть папки источника и клона" Grid.Column="2" Grid.Row="4" Height="30" Width="50">
+        <Button x:Name="ButtonExplorer" Click="ButtonExplorer_OnClick" HorizontalAlignment="Center
+                " ToolTip="Открыть папки источника и клона" Grid.Column="2" Grid.Row="4" Height="30" Width="50">
             <Image x:Name="ImageExplorer" Source="/Icons/Explorer.png" Style="{StaticResource IconsStyle}"/>
         </Button>
         
         <Button x:Name="ButtonStart" Click="ButtonStart_Click" ToolTip="Запуск синхронизатора" Grid.Column="2" Grid.Row="6">
-            <Image x:Name="ImagePlay" Source="/Icons/Start.png" Height="25"/>
+            <Image x:Name="ImagePlay" Source="/Icons/Start.png" Style="{StaticResource IconsStyle}"/>
         </Button>
         <Button x:Name="ButtonStop" Click="ButtonStop_Click" ToolTip="Остановка" Grid.Column="2" Grid.Row="7">
             <Image x:Name="ImageStop" Source="/Icons/Stop.png" Style="{StaticResource IconsStyle}"/>
         </Button>
 
-        <Button x:Name="ButtonClearList" Click="ButtonClearList_OnClick" ToolTip="Очистить список" Grid.Column="2" Grid.Row="8" Width="50">
+        <Button x:Name="ButtonClearList" Click="ButtonClearList_OnClick" HorizontalAlignment="Center" ToolTip="Очистить список" Grid.Column="2" Grid.Row="8" Width="50">
             <Image x:Name="ClearList" Source="/Icons/clear.png" Style="{StaticResource IconsStyle}" Height="15"/>
         </Button>
 

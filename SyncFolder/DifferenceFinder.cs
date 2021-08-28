@@ -180,7 +180,12 @@ namespace SyncFolder
                 {
                     data.Id = _Datas.Count + 1;
                     _Datas.Add(data);
-                    
+                    if (_Datas.Count != 0)
+                    {
+                       // _ListView.SelectedIndex = _Datas.Count - 1;
+                        _ListView.ScrollIntoView(_ListView.Items[_ListView.Items.Count - 1]);
+                    }
+
                     #region ЗАПИСЬ *.CSV
                     using (StreamWriter sw = new StreamWriter(_LogFileName, true, System.Text.Encoding.Default))
                     {

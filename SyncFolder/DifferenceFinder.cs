@@ -67,7 +67,7 @@ namespace SyncFolder
 
             }
 
-//УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ПРИЕМНИКА
+//УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ КЛОНА
 
             //ищем уникальные файлы во 2м каталоге и удаляем их
             query = from file in listFiles2.Except(listFiles1) select destinFolder + file;
@@ -83,7 +83,7 @@ namespace SyncFolder
                 }
             }
 
-//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ПРИЕМНИКА
+//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ КЛОНА
             
             //ищем уникальные папки во 2м каталоге и удаляем их
             query = from folder in listFolders2.Except(listFolders1) select destinFolder + folder;
@@ -107,26 +107,24 @@ namespace SyncFolder
             {
                 for (int i = 0; i < list1.Count; i++)
                 {
-                    for (int j = 0; j < list2.Count; j++)
+                    if (list1.Count != list2.Count) break;
+                    string fileName1 = list1[i].Replace("Файл", "");
+                    string fileName2 = list2[i].Replace("Файл", "");
+                    if (list1[i].Contains("Папка") || list2[i].Contains("Папка")) continue;
+
+                    if (fileName1.Replace(originFolder,"") == fileName2.Replace(destinFolder,""))
                     {
-                        string fileName1 = list1[i].Replace("Файл", "");
-                        string fileName2 = list2[j].Replace("Файл", "");
-                        if (list1[i].Contains("Папка") || list2[j].Contains("Папка")) continue;
-
-                        if (fileName1 == fileName2)
+                        if (!FileCompare(fileName1, fileName2))
                         {
-                            if (!FileCompare(fileName1, fileName2))
-                            {
-                                FileInfo fileInf = new FileInfo(fileName2);
-                                if (fileInf.Exists)
-                                    fileInf.Delete();
+                            FileInfo fileInf = new FileInfo(fileName2);
+                            if (fileInf.Exists)
+                                fileInf.Delete();
 
-                                fileInf = new FileInfo(fileName1);
-                                if (fileInf.Exists)
-                                    fileInf.CopyTo(fileName2, true);
-                                _Datas.Add(new Data { ImagePath = @"\Icons\update.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 });
-                             //   if (ii < 90) _BackgroundWorker.ReportProgress(ii++);
-                            }
+                            fileInf = new FileInfo(fileName1);
+                            if (fileInf.Exists)
+                                fileInf.CopyTo(fileName2, true);
+                            _Datas.Add(new Data { ImagePath = @"\Icons\update.png", TypeOfFile = @"\Icons\file.png", TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = fileName2 });
+                         //   if (ii < 90) _BackgroundWorker.ReportProgress(ii++);
                         }
                     }
                 }

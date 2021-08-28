@@ -77,7 +77,7 @@ namespace SyncFolder
                 return false;
             }
 
-                                                                          //добавить проверку существования папок и файла
+                                                                      
                                                                                                     
             return true;
         }

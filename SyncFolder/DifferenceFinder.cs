@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,89 +47,90 @@ namespace SyncFolder
             List<string> listFiles1 = new List<string>();
             List<string> listFolders2 = new List<string>();
             List<string> listFiles2 = new List<string>();
-
-            //string sDateTimeNow = DateTime.Now.ToString("dd/MM/yy HH:mm:ss");
-//ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
-
-            listFolders1 = (from file in list1 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + originFolder, "")).ToList(); //папки в источнике
-            listFolders2 = (from file in list2 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + destinFolder, "")).ToList(); //папки в приемнике
-
-            //ищем новые папки в 1м каталоге и добавляем их во 2й
-            var query = from folder in listFolders1.Except(listFolders2) select destinFolder + folder;
-            int x = 0;
-            foreach (var folder in query)
-            {
-                DirectoryInfo dirInfo = new DirectoryInfo(folder);
-                if (!dirInfo.Exists)
-                {
-                    dirInfo.Create();
-                    var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder};
-                    UpdateListView(data);
-                    x++;
-                }
-            }
-
-//ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ИСТОЧНИКА
-
-            listFiles1 = (from file in list1 where file.Contains(_sFILE) select file.Replace(_sFILE + originFolder, "")).ToList(); //файлы в источнике
-            listFiles2 = (from file in list2 where file.Contains(_sFILE) select file.Replace(_sFILE + destinFolder, "")).ToList(); //файлы в приемнике
-
-            //ищем новые файлы в 1м каталоге и добавляем их во 2й
-            query = from file in listFiles1.Except(listFiles2) select destinFolder + file;
-            int maxRecords = Math.Max(listFolders1.Count, listFolders2.Count) + Math.Max(listFiles1.Count, listFiles2.Count);
             
-            foreach (var file in query)
-            {
-                FileInfo fileInf = new FileInfo(file.Replace(destinFolder, originFolder));
-                if (fileInf.Exists)
-                {
-                    fileInf.CopyTo(file);
-                    var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
-                    UpdateListView(data , x, maxRecords);
-                    x++;
-                }
-            }
-
-//УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ КЛОНА
-
-            //ищем уникальные файлы во 2м каталоге и удаляем их
-            query = from file in listFiles2.Except(listFiles1) select destinFolder + file;
-
-            foreach (var file in query)
-            {
-                FileInfo fileInf = new FileInfo(file);
-                if (fileInf.Exists)
-                {
-                    fileInf.Delete();
-                    var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
-                    UpdateListView(data, x, maxRecords);
-                    x++;
-                }
-            }
-
-//УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ КЛОНА
-            
-            //ищем уникальные папки во 2м каталоге и удаляем их
-            query = from folder in listFolders2.Except(listFolders1) select destinFolder + folder;
-
-            foreach (var folder in query)
-            {
-                DirectoryInfo dirInfo = new DirectoryInfo(folder);
-                if (dirInfo.Exists)
-                {
-                    dirInfo.Delete(true);
-                    var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder };
-                    UpdateListView(data, x, maxRecords);
-                    x++;
-                }
-            }
-//СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
-
-            list1 = GetRecursFiles(originFolder);
-            list2 = GetRecursFiles(destinFolder);
-
             try
             {
+                    //string sDateTimeNow = DateTime.Now.ToString("dd/MM/yy HH:mm:ss");
+                    //ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ ИСТОЧНИКА
+
+                    listFolders1 = (from file in list1 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + originFolder, "")).ToList(); //папки в источнике
+                listFolders2 = (from file in list2 where file.Contains(_sFOLDER) select file.Replace(_sFOLDER + destinFolder, "")).ToList(); //папки в приемнике
+
+                //ищем новые папки в 1м каталоге и добавляем их во 2й
+                var query = from folder in listFolders1.Except(listFolders2) select destinFolder + folder;
+                int x = 0;
+                foreach (var folder in query)
+                {
+                    DirectoryInfo dirInfo = new DirectoryInfo(folder);
+                    if (!dirInfo.Exists)
+                    {
+                        dirInfo.Create();
+                        var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder};
+                        UpdateListView(data);
+                        x++;
+                    }
+                }
+
+    //ДОБАВЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ ИСТОЧНИКА
+
+                listFiles1 = (from file in list1 where file.Contains(_sFILE) select file.Replace(_sFILE + originFolder, "")).ToList(); //файлы в источнике
+                listFiles2 = (from file in list2 where file.Contains(_sFILE) select file.Replace(_sFILE + destinFolder, "")).ToList(); //файлы в приемнике
+
+                //ищем новые файлы в 1м каталоге и добавляем их во 2й
+                query = from file in listFiles1.Except(listFiles2) select destinFolder + file;
+                int maxRecords = Math.Max(listFolders1.Count, listFolders2.Count) + Math.Max(listFiles1.Count, listFiles2.Count);
+            
+                foreach (var file in query)
+                {
+                    FileInfo fileInf = new FileInfo(file.Replace(destinFolder, originFolder));
+                    if (fileInf.Exists)
+                    {
+                        fileInf.CopyTo(file);
+                        var data = new Data { TypeOfAction = _sADDED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
+                        UpdateListView(data , x, maxRecords);
+                        x++;
+                    }
+                }
+
+    //УДАЛЕНИЕ УНИКАЛЬНЫХ ФАЙЛОВ ИЗ КЛОНА
+
+                //ищем уникальные файлы во 2м каталоге и удаляем их
+                query = from file in listFiles2.Except(listFiles1) select destinFolder + file;
+
+                foreach (var file in query)
+                {
+                    FileInfo fileInf = new FileInfo(file);
+                    if (fileInf.Exists)
+                    {
+                       fileInf.Delete();
+                        var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFILE_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = file };
+                        UpdateListView(data, x, maxRecords);
+                        x++;
+                    }
+                }
+
+    //УДАЛЕНИЕ УНИКАЛЬНЫХ ПАПОК ИЗ КЛОНА
+            
+                //ищем уникальные папки во 2м каталоге и удаляем их
+                query = from folder in listFolders2.Except(listFolders1) select destinFolder + folder;
+
+                foreach (var folder in query)
+                {
+                    DirectoryInfo dirInfo = new DirectoryInfo(folder);
+                    if (dirInfo.Exists)
+                    {
+                        dirInfo.Delete(true);
+                        var data = new Data { TypeOfAction = _sDELETED_ICON, TypeOfFile = _sFOLDER_ICON, TimeStamp = DateTime.Now.ToString("HH:mm:ss"), Path = folder };
+                        UpdateListView(data, x, maxRecords);
+                        x++;
+                    }
+                }
+    //СРАВНЕНИЕ СОДЕРЖИМОГО ФАЙЛОВ
+
+                list1 = GetRecursFiles(originFolder);
+                list2 = GetRecursFiles(destinFolder);
+
+            
                 for (int i = 0; i < list1.Count; i++)
                 {
                     if (list1.Count != list2.Count) break;
@@ -152,6 +155,12 @@ namespace SyncFolder
                         }
                     }
                 }
+            }
+            catch (System.UnauthorizedAccessException e)    //если стоит запрет на действия с файлом (если запускать с правами админа, то файлы защищенные галочками, вроде запрета на изменения, удаляются)
+            {
+                UpdateStatusBox(e.Message);
+                //MessageBox.Show(e.Message);
+                return new List<Data>();
             }
             catch (System.Exception e)
             {
